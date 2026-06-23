@@ -7,7 +7,7 @@ import java.security.cert.Certificate
 internal interface Secrets {
     fun toCertificate(src: InputStream): Certificate
     fun toPrivateKey(src: InputStream): PrivateKey
-    fun getCertificate(alias: String): Certificate?
-    fun setCertificate(alias: String, key: PrivateKey, crt: Certificate)
-    fun deleteKeys(alias: String)
+    fun getUserCrt(alias: String): Certificate?
+    fun setUserKey(alias: String, key: PrivateKey, crt: Certificate)
+    fun deleteUserKey(alias: String)
 }

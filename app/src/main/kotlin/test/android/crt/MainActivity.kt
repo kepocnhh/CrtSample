@@ -17,7 +17,7 @@ import java.security.cert.X509Certificate
 internal class MainActivity : ComponentActivity() {
     private val providers = App.providers
     private val logger = providers.loggers.create("[Main]")
-    private val alias = "foo"
+    private val userKeyAlias = "foo"
 
     private var _textOwner: TextView? = null
     private var _switchOwner: TextView? = null
@@ -40,17 +40,17 @@ internal class MainActivity : ComponentActivity() {
             }
             switchOwner.visibility = View.VISIBLE
             val crt = withContext(providers.contexts.default) {
-                providers.secrets.getCertificate(alias = alias)
+                providers.secrets.getUserCrt(alias = userKeyAlias)
             }
             val text: String
             if (crt == null) {
-                text = "no crt $alias"
+                text = "no user crt $userKeyAlias"
                 addCrt.visibility = View.VISIBLE
                 deleteCrt.visibility = View.GONE
             } else {
                 check(crt is X509Certificate)
                 text = """
-                    alias: $alias
+                    alias: $userKeyAlias
                     serial number: ${crt.serialNumber.toByteArray().toHexString()}
                 """.trimIndent()
                 addCrt.visibility = View.GONE
@@ -102,7 +102,7 @@ internal class MainActivity : ComponentActivity() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 )
-                view.text = "add crt $alias"
+                view.text = "add user key $userKeyAlias"
                 view.setOnClickListener { _ ->
                     lifecycleScope.launch {
                         withContext(providers.contexts.default) {
@@ -113,7 +113,7 @@ internal class MainActivity : ComponentActivity() {
                                 val key = providers.assets.open("ca.key").use { src ->
                                     providers.secrets.toPrivateKey(src = src)
                                 }
-                                providers.secrets.setCertificate(alias = alias, key = key, crt = crt)
+                                providers.secrets.setUserKey(alias = userKeyAlias, key = key, crt = crt)
                             }
                         }.fold(
                             onSuccess = {
@@ -132,12 +132,12 @@ internal class MainActivity : ComponentActivity() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 )
-                view.text = "delete crt $alias"
+                view.text = "delete user key $userKeyAlias"
                 view.setOnClickListener { _ ->
                     lifecycleScope.launch {
                         withContext(providers.contexts.default) {
                             runCatching {
-                                providers.secrets.deleteKeys(alias = alias)
+                                providers.secrets.deleteUserKey(alias = userKeyAlias)
                             }
                         }.fold(
                             onSuccess = {

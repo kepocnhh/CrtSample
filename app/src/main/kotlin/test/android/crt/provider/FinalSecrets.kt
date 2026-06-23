@@ -18,7 +18,7 @@ internal class FinalSecrets(
 ) : Secrets {
     private val logger = loggers.create("[Secrets]")
 
-    override fun getCertificate(alias: String): Certificate? {
+    override fun getUserCrt(alias: String): Certificate? {
         val dm = context.getSystemService(DevicePolicyManager::class.java)
         if (!dm.isDeviceOwnerApp(context.packageName)) error("Not device owner!")
         if (!dm.hasKeyPair(alias)) {
@@ -31,11 +31,18 @@ internal class FinalSecrets(
         return KeyChain.getCertificateChain(context, alias)?.firstOrNull()
     }
 
-    override fun setCertificate(alias: String, key: PrivateKey, crt: Certificate) {
+    override fun setUserKey(alias: String, key: PrivateKey, crt: Certificate) {
         val dm = context.getSystemService(DevicePolicyManager::class.java)
         if (!dm.isDeviceOwnerApp(context.packageName)) error("Not device owner!")
         val isInstalled = dm.installKeyPair(ComponentName(context, MainDeviceAdminReceiver::class.java), key, crt, alias)
         if (!isInstalled) error("Keys($alias) were not installed!")
+    }
+
+    override fun deleteUserKey(alias: String) {
+        val dm = context.getSystemService(DevicePolicyManager::class.java)
+        if (!dm.isDeviceOwnerApp(context.packageName)) error("Not device owner!")
+        val isRemoved = dm.removeKeyPair(ComponentName(context, MainDeviceAdminReceiver::class.java), alias)
+        if (!isRemoved) error("Keys($alias) were not removed!")
     }
 
     override fun toCertificate(src: InputStream): Certificate {
@@ -46,12 +53,5 @@ internal class FinalSecrets(
     override fun toPrivateKey(src: InputStream): PrivateKey {
         val kf = KeyFactory.getInstance("rsa")
         return kf.generatePrivate(PKCS8EncodedKeySpec(src.readBytes()))
-    }
-
-    override fun deleteKeys(alias: String) {
-        val dm = context.getSystemService(DevicePolicyManager::class.java)
-        if (!dm.isDeviceOwnerApp(context.packageName)) error("Not device owner!")
-        val isRemoved = dm.removeKeyPair(ComponentName(context, MainDeviceAdminReceiver::class.java), alias)
-        if (!isRemoved) error("Keys($alias) were not removed!")
     }
 }
