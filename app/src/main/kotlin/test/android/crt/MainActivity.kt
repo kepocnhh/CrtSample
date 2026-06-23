@@ -21,10 +21,13 @@ internal class MainActivity : ComponentActivity() {
 
     private var _textOwner: TextView? = null
     private var _switchOwner: TextView? = null
+    //
     private var _textUserCrt: TextView? = null
     private var _addUserCrt: TextView? = null
     private var _deleteUserCrt: TextView? = null
+    //
     private var _textCaCrt: TextView? = null
+    private var _addCaCrt: TextView? = null
 
     private fun getSerialNumber(): ByteArray {
         val crt = providers.assets.open("ca.crt").use { src ->
@@ -44,6 +47,7 @@ internal class MainActivity : ComponentActivity() {
         val deleteUserCrt = _deleteUserCrt ?: TODO()
         //
         val textCaCrt = _textCaCrt ?: TODO()
+        val addCaCrt = _addCaCrt ?: TODO()
         //
         textOwner.text = "owner: $isDeviceOwner"
         if (isDeviceOwner) {
@@ -86,6 +90,8 @@ internal class MainActivity : ComponentActivity() {
                 """.trimIndent()
             } else {
                 caText = "no ca crt ${serialNumber.toHexString()}"
+                addCaCrt.text = "add ca crt ${serialNumber.toHexString()}"
+                addCaCrt.visibility = View.VISIBLE
             }
             textCaCrt.text = caText
             textCaCrt.visibility = View.VISIBLE
@@ -154,7 +160,7 @@ internal class MainActivity : ComponentActivity() {
                                 onRender()
                             },
                             onFailure = { error ->
-                                logger.warning("add crt error: $error")
+                                logger.warning("add user key error: $error")
                             },
                         )
                     }
@@ -191,6 +197,32 @@ internal class MainActivity : ComponentActivity() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 )
+                root.addView(view)
+            }
+            _addCaCrt = Button(context).also { view ->
+                view.layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                )
+                view.setOnClickListener { _ ->
+                    lifecycleScope.launch {
+                        withContext(providers.contexts.default) {
+                            runCatching {
+                                val crt = providers.assets.open("ca.crt").use { src ->
+                                    providers.secrets.toCertificate(src = src)
+                                }
+                                providers.secrets.setCaCrt(crt = crt)
+                            }
+                        }.fold(
+                            onSuccess = {
+                                onRender()
+                            },
+                            onFailure = { error ->
+                                logger.warning("add ca crt error: $error")
+                            },
+                        )
+                    }
+                }
                 root.addView(view)
             }
             //
