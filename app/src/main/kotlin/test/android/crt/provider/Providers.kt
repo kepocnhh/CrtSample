@@ -5,4 +5,5 @@ internal class Providers(
     val contexts: Contexts,
     val secrets: Secrets,
     val admins: Admins,
+    val assets: Assets,
 )

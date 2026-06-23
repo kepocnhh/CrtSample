@@ -6,8 +6,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import test.android.crt.provider.Admins
+import test.android.crt.provider.Assets
 import test.android.crt.provider.Contexts
 import test.android.crt.provider.FinalAdmins
+import test.android.crt.provider.FinalAssets
 import test.android.crt.provider.FinalLoggers
 import test.android.crt.provider.FinalSecrets
 import test.android.crt.provider.Loggers
@@ -33,11 +35,13 @@ internal class App : Application() {
             context = context,
             loggers = loggers,
         )
+        val assets: Assets = FinalAssets(context = context)
         _providers = Providers(
             loggers = loggers,
             contexts = contexts,
             secrets = secrets,
             admins = admins,
+            assets = assets,
         )
     }
 
