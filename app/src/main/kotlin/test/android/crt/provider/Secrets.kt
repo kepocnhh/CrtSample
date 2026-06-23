@@ -14,4 +14,5 @@ internal interface Secrets {
     //
     fun getCaCrt(serialNumber: ByteArray): Certificate?
     fun setCaCrt(crt: Certificate)
+    fun deleteCaCrt(crt: Certificate)
 }

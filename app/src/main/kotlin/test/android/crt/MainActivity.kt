@@ -28,6 +28,7 @@ internal class MainActivity : ComponentActivity() {
     //
     private var _textCaCrt: TextView? = null
     private var _addCaCrt: TextView? = null
+    private var _deleteCaCrt: TextView? = null
 
     private fun getSerialNumber(): ByteArray {
         val crt = providers.assets.open("ca.crt").use { src ->
@@ -48,6 +49,7 @@ internal class MainActivity : ComponentActivity() {
         //
         val textCaCrt = _textCaCrt ?: TODO()
         val addCaCrt = _addCaCrt ?: TODO()
+        val deleteCaCrt = _deleteCaCrt ?: TODO()
         //
         textOwner.text = "owner: $isDeviceOwner"
         if (isDeviceOwner) {
@@ -88,20 +90,27 @@ internal class MainActivity : ComponentActivity() {
                     ca
                     serial number: ${serialNumber.toHexString()}
                 """.trimIndent()
+                addCaCrt.visibility = View.GONE
+                deleteCaCrt.text = "delete ca crt ${serialNumber.toHexString()}"
+                deleteCaCrt.visibility = View.VISIBLE
             } else {
                 caText = "no ca crt ${serialNumber.toHexString()}"
                 addCaCrt.text = "add ca crt ${serialNumber.toHexString()}"
                 addCaCrt.visibility = View.VISIBLE
+                deleteCaCrt.visibility = View.GONE
             }
             textCaCrt.text = caText
             textCaCrt.visibility = View.VISIBLE
         } else {
             switchOwner.visibility = View.GONE
+            //
             textUserCrt.visibility = View.GONE
             addUserCrt.visibility = View.GONE
             deleteUserCrt.visibility = View.GONE
             //
             textCaCrt.visibility = View.GONE
+            addCaCrt.visibility = View.GONE
+            deleteCaCrt.visibility = View.GONE
         }
     }
 
@@ -219,6 +228,32 @@ internal class MainActivity : ComponentActivity() {
                             },
                             onFailure = { error ->
                                 logger.warning("add ca crt error: $error")
+                            },
+                        )
+                    }
+                }
+                root.addView(view)
+            }
+            _deleteCaCrt = Button(context).also { view ->
+                view.layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                )
+                view.setOnClickListener { _ ->
+                    lifecycleScope.launch {
+                        withContext(providers.contexts.default) {
+                            runCatching {
+                                val crt = providers.assets.open("ca.crt").use { src ->
+                                    providers.secrets.toCertificate(src = src)
+                                }
+                                providers.secrets.deleteCaCrt(crt = crt)
+                            }
+                        }.fold(
+                            onSuccess = {
+                                onRender()
+                            },
+                            onFailure = { error ->
+                                logger.warning("delete ca crt error: $error")
                             },
                         )
                     }

@@ -76,4 +76,12 @@ internal class FinalSecrets(
         val isInstalled = dm.installCaCert(admin, crt.encoded)
         if (!isInstalled) error("Crt(${crt.serialNumber.toByteArray().toHexString()}) were not installed!")
     }
+
+    override fun deleteCaCrt(crt: Certificate) {
+        val dm = context.getSystemService(DevicePolicyManager::class.java)
+        if (!dm.isDeviceOwnerApp(context.packageName)) error("Not device owner!")
+        val admin = ComponentName(context, MainDeviceAdminReceiver::class.java)
+        check(crt is X509Certificate)
+        dm.uninstallCaCert(admin, crt.encoded)
+    }
 }
