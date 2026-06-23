@@ -21,17 +21,30 @@ internal class MainActivity : ComponentActivity() {
 
     private var _textOwner: TextView? = null
     private var _switchOwner: TextView? = null
-    private var _textCrt: TextView? = null
-    private var _addCrt: TextView? = null
-    private var _deleteCrt: TextView? = null
+    private var _textUserCrt: TextView? = null
+    private var _addUserCrt: TextView? = null
+    private var _deleteUserCrt: TextView? = null
+    private var _textCaCrt: TextView? = null
+
+    private fun getSerialNumber(): ByteArray {
+        val crt = providers.assets.open("ca.crt").use { src ->
+            providers.secrets.toCertificate(src = src)
+        }
+        check(crt is X509Certificate)
+        return crt.serialNumber.toByteArray()
+    }
 
     private suspend fun onRender() = withContext(providers.contexts.main) {
         val isDeviceOwner = providers.admins.owners.value
+        //
         val textOwner = _textOwner ?: TODO()
         val switchOwner = _switchOwner ?: TODO()
-        val textCrt = _textCrt ?: TODO()
-        val addCrt = _addCrt ?: TODO()
-        val deleteCrt = _deleteCrt ?: TODO()
+        val textUserCrt = _textUserCrt ?: TODO()
+        val addUserCrt = _addUserCrt ?: TODO()
+        val deleteUserCrt = _deleteUserCrt ?: TODO()
+        //
+        val textCaCrt = _textCaCrt ?: TODO()
+        //
         textOwner.text = "owner: $isDeviceOwner"
         if (isDeviceOwner) {
             switchOwner.text = "remove admin"
@@ -39,30 +52,50 @@ internal class MainActivity : ComponentActivity() {
                 providers.admins.update(isDeviceOwner = false)
             }
             switchOwner.visibility = View.VISIBLE
-            val crt = withContext(providers.contexts.default) {
+            //
+            val userCrt = withContext(providers.contexts.default) {
                 providers.secrets.getUserCrt(alias = userKeyAlias)
             }
-            val text: String
-            if (crt == null) {
-                text = "no user crt $userKeyAlias"
-                addCrt.visibility = View.VISIBLE
-                deleteCrt.visibility = View.GONE
-            } else {
-                check(crt is X509Certificate)
-                text = """
+            val userText: String
+            if (userCrt is X509Certificate) {
+                userText = """
                     alias: $userKeyAlias
-                    serial number: ${crt.serialNumber.toByteArray().toHexString()}
+                    serial number: ${userCrt.serialNumber.toByteArray().toHexString()}
                 """.trimIndent()
-                addCrt.visibility = View.GONE
-                deleteCrt.visibility = View.VISIBLE
+                addUserCrt.visibility = View.GONE
+                deleteUserCrt.visibility = View.VISIBLE
+            } else {
+                userText = "no user crt $userKeyAlias"
+                addUserCrt.visibility = View.VISIBLE
+                deleteUserCrt.visibility = View.GONE
             }
-            textCrt.text = text
-            textCrt.visibility = View.VISIBLE
+            textUserCrt.text = userText
+            textUserCrt.visibility = View.VISIBLE
+            //
+            val serialNumber = withContext(providers.contexts.default) {
+                getSerialNumber()
+            }
+            val caCrt = withContext(providers.contexts.default) {
+                providers.secrets.getCaCrt(serialNumber = serialNumber)
+            }
+            val caText: String
+            if (caCrt is X509Certificate) {
+                caText = """
+                    ca
+                    serial number: ${serialNumber.toHexString()}
+                """.trimIndent()
+            } else {
+                caText = "no ca crt ${serialNumber.toHexString()}"
+            }
+            textCaCrt.text = caText
+            textCaCrt.visibility = View.VISIBLE
         } else {
             switchOwner.visibility = View.GONE
-            textCrt.visibility = View.GONE
-            addCrt.visibility = View.GONE
-            deleteCrt.visibility = View.GONE
+            textUserCrt.visibility = View.GONE
+            addUserCrt.visibility = View.GONE
+            deleteUserCrt.visibility = View.GONE
+            //
+            textCaCrt.visibility = View.GONE
         }
     }
 
@@ -90,14 +123,15 @@ internal class MainActivity : ComponentActivity() {
                 )
                 root.addView(view)
             }
-            _textCrt = TextView(context).also { view ->
+            //
+            _textUserCrt = TextView(context).also { view ->
                 view.layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 )
                 root.addView(view)
             }
-            _addCrt = Button(context).also { view ->
+            _addUserCrt = Button(context).also { view ->
                 view.layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -107,10 +141,10 @@ internal class MainActivity : ComponentActivity() {
                     lifecycleScope.launch {
                         withContext(providers.contexts.default) {
                             runCatching {
-                                val crt = providers.assets.open("ca.crt").use { src ->
+                                val crt = providers.assets.open("foo.crt").use { src ->
                                     providers.secrets.toCertificate(src = src)
                                 }
-                                val key = providers.assets.open("ca.key").use { src ->
+                                val key = providers.assets.open("foo.key").use { src ->
                                     providers.secrets.toPrivateKey(src = src)
                                 }
                                 providers.secrets.setUserKey(alias = userKeyAlias, key = key, crt = crt)
@@ -127,7 +161,7 @@ internal class MainActivity : ComponentActivity() {
                 }
                 root.addView(view)
             }
-            _deleteCrt = Button(context).also { view ->
+            _deleteUserCrt = Button(context).also { view ->
                 view.layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -151,6 +185,15 @@ internal class MainActivity : ComponentActivity() {
                 }
                 root.addView(view)
             }
+            //
+            _textCaCrt = TextView(context).also { view ->
+                view.layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                )
+                root.addView(view)
+            }
+            //
             lifecycleScope.launch {
                 withContext(providers.contexts.default) {
                     providers.admins.owners.collect { _ ->

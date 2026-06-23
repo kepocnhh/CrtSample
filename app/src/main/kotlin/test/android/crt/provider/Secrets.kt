@@ -10,4 +10,5 @@ internal interface Secrets {
     fun getUserCrt(alias: String): Certificate?
     fun setUserKey(alias: String, key: PrivateKey, crt: Certificate)
     fun deleteUserKey(alias: String)
+    fun getCaCrt(serialNumber: ByteArray): Certificate?
 }

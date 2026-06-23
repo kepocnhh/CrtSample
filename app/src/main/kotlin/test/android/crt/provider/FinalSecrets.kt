@@ -10,6 +10,7 @@ import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.cert.Certificate
 import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import java.security.spec.PKCS8EncodedKeySpec
 
 internal class FinalSecrets(
@@ -53,5 +54,17 @@ internal class FinalSecrets(
     override fun toPrivateKey(src: InputStream): PrivateKey {
         val kf = KeyFactory.getInstance("rsa")
         return kf.generatePrivate(PKCS8EncodedKeySpec(src.readBytes()))
+    }
+
+    override fun getCaCrt(serialNumber: ByteArray): Certificate? {
+        val dm = context.getSystemService(DevicePolicyManager::class.java)
+        if (!dm.isDeviceOwnerApp(context.packageName)) error("Not device owner!")
+        val admin = ComponentName(context, MainDeviceAdminReceiver::class.java)
+        val crts = dm.getInstalledCaCerts(admin)
+        for (encoded in crts) {
+            val crt = toCertificate(src = encoded.inputStream())
+            if (crt is X509Certificate && crt.serialNumber.toByteArray().contentEquals(serialNumber)) return crt
+        }
+        return null
     }
 }
