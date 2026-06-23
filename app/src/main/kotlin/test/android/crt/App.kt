@@ -34,6 +34,8 @@ internal class App : Application() {
             loggers = loggers,
         )
         _providers = Providers(
+            loggers = loggers,
+            contexts = contexts,
             secrets = secrets,
             admins = admins,
         )
